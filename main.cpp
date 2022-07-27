@@ -166,7 +166,7 @@ void displayPerson(const Person &person) {
     cout << "Adres: " + person.address << endl << endl;
 }
 
-void findPersonByName(const list<Person> &persons, int userId) {
+void findPersonByName(const list<Person> &persons) {
     string name;
     bool found = false;
 
@@ -176,7 +176,7 @@ void findPersonByName(const list<Person> &persons, int userId) {
     getline(cin, name);
 
     for (Person person : persons) {
-        if (person.userId == userId && person.name == name) {
+        if (person.name == name) {
             displayPerson(person);
             found = true;
         }
@@ -187,7 +187,7 @@ void findPersonByName(const list<Person> &persons, int userId) {
     pressAnyKey();
 }
 
-void findPersonByLastName(const list<Person> &persons, int userId) {
+void findPersonByLastName(const list<Person> &persons) {
     string lastName;
     bool found = false;
 
@@ -197,7 +197,7 @@ void findPersonByLastName(const list<Person> &persons, int userId) {
     getline(cin, lastName);
 
     for (Person person : persons) {
-        if (person.userId == userId && person.lastName == lastName) {
+        if (person.lastName == lastName) {
             displayPerson(person);
             found = true;
         }
@@ -208,7 +208,7 @@ void findPersonByLastName(const list<Person> &persons, int userId) {
     pressAnyKey();
 }
 
-void displayAllPersons(const list<Person> &persons, int userId) {
+void displayAllPersons(const list<Person> &persons) {
     system("cls");
     cout << ">>> LISTA OSOB W KSIAZCE ADRESOWEJ <<<" << endl << endl;
 
@@ -216,9 +216,7 @@ void displayAllPersons(const list<Person> &persons, int userId) {
         cout << "Baza danych jest pusta!" << endl;
     } else {
         for (Person person : persons) {
-            if (person.userId == userId) {
-                displayPerson(person);
-            }
+            displayPerson(person);
         }
     }
     pressAnyKey();
@@ -293,7 +291,7 @@ vector<string> split(string str, char delimiter) {
     return splittedString;
 }
 
-void loadFromFile(const string filename, list<Person> &persons) {
+void loadFromFile(const string filename, list<Person> &persons, int userId) {
 
     ifstream file;
     file.open(filename);
@@ -305,15 +303,17 @@ void loadFromFile(const string filename, list<Person> &persons) {
         while (getline(file, line)) {
             splittedLine = split(line, '|');
 
-            person.id = stoi(splittedLine[0]);
-            person.userId = stoi(splittedLine[1]);
-            person.name = splittedLine[2];
-            person.lastName = splittedLine[3];
-            person.phoneNumber = splittedLine[4];
-            person.email = splittedLine[5];
-            person.address = splittedLine[6];
+            if (stoi(splittedLine[1]) == userId) {
+                person.id = stoi(splittedLine[0]);
+                person.userId = stoi(splittedLine[1]);
+                person.name = splittedLine[2];
+                person.lastName = splittedLine[3];
+                person.phoneNumber = splittedLine[4];
+                person.email = splittedLine[5];
+                person.address = splittedLine[6];
 
-            persons.push_back(person);
+                persons.push_back(person);
+            }
         }
     }
     file.close();
@@ -408,7 +408,7 @@ void editPersonData(const string filename, list<Person> &persons) {
 void mainLoop(User &loggedUser) {
     const string FILENAME = "Adresaci.txt";
     list<Person> persons;
-    loadFromFile(FILENAME, persons);
+    loadFromFile(FILENAME, persons, loggedUser.id);
 
     while (1) {
         displayMenu(loggedUser);
@@ -419,13 +419,13 @@ void mainLoop(User &loggedUser) {
             addPerson(FILENAME, persons, loggedUser.id);
             break;
         case '2':
-            findPersonByName(persons, loggedUser.id);
+            findPersonByName(persons);
             break;
         case '3':
-            findPersonByLastName(persons, loggedUser.id);
+            findPersonByLastName(persons);
             break;
         case '4':
-            displayAllPersons(persons, loggedUser.id);
+            displayAllPersons(persons);
             break;
         case '5':
             removePerson(FILENAME, persons);
