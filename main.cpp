@@ -9,6 +9,11 @@
 
 using namespace std;
 
+struct User {
+    int id = 0;
+    string login, password;
+};
+
 struct Person {
     int id = 0;
     string name, lastName, phoneNumber, email, address;
@@ -16,6 +21,11 @@ struct Person {
 };
 
 bool saveToFile(const string, const Person &);
+
+void pressAnyKey() {
+    cout << "Nacisnij dowolny klawisz...";
+    getch();
+}
 
 string inputName() {
     string name;
@@ -84,8 +94,7 @@ void addPerson(const string filename, list<Person> &persons) {
     } else {
         cout << "Ups, cos poszlo nie tak. Blad zapisu do pliku!" << endl;
     }
-    cout << "Nacisnij dowolny klawisz...";
-    getch();
+    pressAnyKey();
 }
 
 void saveAllToFile(const string filename, const list<Person> &persons) {
@@ -145,8 +154,7 @@ void removePerson(const string filename, list<Person> &persons) {
     } else {
         cout << "Nie znaleziono osoby o takim ID!" << endl;
     }
-    cout << "Nacisnij dowolny klawisz...";
-    getch();
+    pressAnyKey();
 }
 
 void displayPerson(const Person &person) {
@@ -175,8 +183,7 @@ void findPersonByName(const list<Person> &persons) {
     if (!found) {
         cout << "Nie znaleziono osob o takim imieniu!" << endl;
     }
-    cout << "Nacisnij dowolny klawisz...";
-    getch();
+    pressAnyKey();
 }
 
 void findPersonByLastName(const list<Person> &persons) {
@@ -197,8 +204,7 @@ void findPersonByLastName(const list<Person> &persons) {
     if (!found) {
         cout << "Nie znaleziono osob o takim nazwisku!" << endl;
     }
-    cout << "Nacisnij dowolny klawisz...";
-    getch();
+    pressAnyKey();
 }
 
 void displayAllPersons(const list<Person> &persons) {
@@ -212,14 +218,13 @@ void displayAllPersons(const list<Person> &persons) {
             displayPerson(person);
         }
     }
-
-    cout << "Nacisnij dowolny klawisz...";
-    getch();
+    pressAnyKey();
 }
 
-void displayMenu() {
+void displayMenu(const User &loggedUser) {
     system("cls");
-    cout << ">>> KSIAZKA ADRESOWA V.0.2 <<<" << endl << endl;
+    cout << ">>> KSIAZKA ADRESOWA V.0.2 <<<" << endl;
+    cout << endl << "Zalogowany jako: " << loggedUser.login << endl << endl;
     cout << "1. Dodaj osobe" << endl;
     cout << "2. Wyszukaj po imieniu" << endl;
     cout << "3. Wyszukaj po nazwisku" << endl;
@@ -258,6 +263,21 @@ bool saveToFile(const string filename, const Person &person) {
     return false;
 }
 
+bool saveToFile(const string filename, const User &user) {
+    ofstream file;
+    file.open(filename, ios_base::app);
+
+    if (file.is_open()) {
+        file << user.id << '|';
+        file << user.login << '|';
+        file << user.password << '|' << endl;
+
+        file.close();
+        return true;
+    }
+    return false;
+}
+
 vector<string> split(string str, char delimiter) {
     stringstream stream(str);
     string segment;
@@ -289,6 +309,27 @@ void loadFromFile(const string filename, list<Person> &persons) {
             person.address = splittedLine[5];
 
             persons.push_back(person);
+        }
+    }
+    file.close();
+}
+
+void loadFromFile(const string filename, list<User> &users) {
+    ifstream file;
+    file.open(filename);
+    string line;
+    User user;
+    vector<string> splittedLine;
+
+    if (file.is_open()) {
+        while (getline(file, line)) {
+            splittedLine = split(line, '|');
+
+            user.id = stoi(splittedLine[0]);
+            user.login = splittedLine[1];
+            user.password = splittedLine[2];
+
+            users.push_back(user);
         }
     }
     file.close();
@@ -356,18 +397,16 @@ void editPersonData(const string filename, list<Person> &persons) {
     } else {
         cout << "Nie znaleziono osoby o takim ID!" << endl;
     }
-    cout << "Nacisnij dowolny klawisz...";
-    getch();
+    pressAnyKey();
 }
 
-int main() {
-
-    const string FILENAME = "KsiazkaAdresowa.txt";
+void mainLoop(User &loggedUser) {
+    const string FILENAME = "Adresaci.txt";
     list<Person> persons;
     loadFromFile(FILENAME, persons);
 
     while (1) {
-        displayMenu();
+        displayMenu(loggedUser);
         char option = selectOption();
 
         switch (option) {
@@ -390,6 +429,155 @@ int main() {
             editPersonData(FILENAME, persons);
             break;
         case '7':
+            exit(0);
+        }
+    }
+}
+//==============================================================================
+//==============================================================================
+
+void displayMainMenu() {
+    system("cls");
+    cout << ">>> MENU GLOWNE <<<" << endl << endl;
+    cout << "1. Rejestracja" << endl;
+    cout << "2. Logowanie" << endl;
+    cout << "3. Zakoncz program" << endl << endl;
+    cout << "Podaj numer opcji: " << endl;
+}
+
+char selectMainMenuOption() {
+    char ch;
+
+    do {
+        ch = getch();
+    } while (ch < '1' || ch > '3');
+
+    return ch;
+}
+//==============================================================================
+//=                     REJESTRACJA UZYTKOWNIKA                                =
+//==============================================================================
+string inputLogin() {
+    string login;
+
+    cout << "Podaj login: ";
+    getline(cin, login);
+
+    return login;
+}
+
+string inputPassword() {
+    string password;
+
+    cout << "Podaj haslo: ";
+    getline(cin, password);
+
+    return password;
+}
+
+bool isLoginExists(string login, const list<User> &users) {
+    for (User user : users) {
+        if (login == user.login) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void addUser(string filename, list<User> &users) {
+    User user;
+
+    system("cls");
+    cout << ">>> REJESTRACJA NOWEGO UZYTKOWNIKA <<<" << endl << endl;
+    if (!users.size()) {
+        user.id = 1;
+    } else {
+        user.id = users.back().id + 1;
+    }
+    if (isLoginExists(user.login = inputLogin(), users)) {
+        cout << "Podany login jest juz zajety" << endl;
+        pressAnyKey();
+        return;
+    }
+    user.password = inputPassword();
+
+    users.push_back(user);
+    if (saveToFile(filename, user)) {
+        cout << "Konto zalozono pomyslnie!" << endl;
+    } else {
+        cout << "Ups, cos poszlo nie tak. Blad zapisu do pliku!" << endl;
+    }
+    pressAnyKey();
+}
+
+//==============================================================================
+//=                     LOGOWANIE UZYTKOWNIKA                                =
+//==============================================================================
+
+User getUserByLogin(string login, const list<User> &users) {
+    User user;
+
+    for (User u : users) {
+        if (login == u.login) {
+            user = u;
+            break;
+        }
+    }
+    return user;
+}
+
+bool validatePassword(string password, const User &user) {
+    if (password == user.password) {
+        return true;
+    }
+    return false;
+}
+
+void userLogging(const list<User> &users) {
+    User user;
+    string login;
+    const int TRIALS_QUANTITY = 3;
+
+    system("cls");
+    cout << ">>> LOGOWANIE UZYTKOWNIKA <<<" << endl << endl;
+    if (!isLoginExists(login = inputLogin(), users)) {
+        cout << "Podany login nie istnieje!" << endl;
+        pressAnyKey();
+        return;
+    }
+    user = getUserByLogin(login, users);
+    for (int i = TRIALS_QUANTITY; i >= 1; i--) {
+        cout << "Wpisywanie hasla. Pozostalo prob: " << i << endl;
+        if (validatePassword(inputPassword(), user)) {
+            cout << endl << "Zalogowano pomyslnie!" << endl;
+            pressAnyKey();
+            mainLoop(user);
+        } else {
+            cout << "Haslo niepoprawne!" << endl;
+            continue;
+        }
+    }
+    pressAnyKey();
+    return;
+}
+
+int main() {
+    const string FILENAME = "Uzytkownicy.txt";
+    list<User> users;
+    loadFromFile(FILENAME, users);
+
+    while (1) {
+        displayMainMenu();
+        char mainMenuOption = selectMainMenuOption();
+
+        switch (mainMenuOption) {
+        case '1':
+            addUser(FILENAME, users);
+            break;
+        case '2':
+            userLogging(users);
+            break;
+        case '3':
             exit(0);
         }
     }
