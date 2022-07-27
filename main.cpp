@@ -15,7 +15,7 @@ struct User {
 };
 
 struct Person {
-    int id = 0;
+    int id = 0, userId;
     string name, lastName, phoneNumber, email, address;
     bool operator == (const Person &p) const {return id == p.id;}
 };
@@ -72,7 +72,7 @@ string inputAddress() {
     return address;
 }
 
-void addPerson(const string filename, list<Person> &persons) {
+void addPerson(const string filename, list<Person> &persons, int userId) {
     Person person;
 
     system("cls");
@@ -82,6 +82,7 @@ void addPerson(const string filename, list<Person> &persons) {
     } else {
         person.id = persons.back().id + 1;
     }
+    person.userId = userId;
     person.name = inputName();
     person.lastName = inputLastName();
     person.phoneNumber = inputPhoneNumber();
@@ -98,7 +99,7 @@ void addPerson(const string filename, list<Person> &persons) {
 }
 
 void saveAllToFile(const string filename, const list<Person> &persons) {
-    ofstream file;
+    /*ofstream file;
     file.open(filename);
 
     for (Person person : persons) {
@@ -106,7 +107,7 @@ void saveAllToFile(const string filename, const list<Person> &persons) {
             cout << "Ups, cos poszlo nie tak. Blad zapisu do pliku!" << endl;
         }
     }
-    file.close();
+    file.close();*/
 }
 
 int inputNumber() {
@@ -165,7 +166,7 @@ void displayPerson(const Person &person) {
     cout << "Adres: " + person.address << endl << endl;
 }
 
-void findPersonByName(const list<Person> &persons) {
+void findPersonByName(const list<Person> &persons, int userId) {
     string name;
     bool found = false;
 
@@ -175,7 +176,7 @@ void findPersonByName(const list<Person> &persons) {
     getline(cin, name);
 
     for (Person person : persons) {
-        if (person.name == name) {
+        if (person.userId == userId && person.name == name) {
             displayPerson(person);
             found = true;
         }
@@ -186,7 +187,7 @@ void findPersonByName(const list<Person> &persons) {
     pressAnyKey();
 }
 
-void findPersonByLastName(const list<Person> &persons) {
+void findPersonByLastName(const list<Person> &persons, int userId) {
     string lastName;
     bool found = false;
 
@@ -196,7 +197,7 @@ void findPersonByLastName(const list<Person> &persons) {
     getline(cin, lastName);
 
     for (Person person : persons) {
-        if (person.lastName == lastName) {
+        if (person.userId == userId && person.lastName == lastName) {
             displayPerson(person);
             found = true;
         }
@@ -207,7 +208,7 @@ void findPersonByLastName(const list<Person> &persons) {
     pressAnyKey();
 }
 
-void displayAllPersons(const list<Person> &persons) {
+void displayAllPersons(const list<Person> &persons, int userId) {
     system("cls");
     cout << ">>> LISTA OSOB W KSIAZCE ADRESOWEJ <<<" << endl << endl;
 
@@ -215,7 +216,9 @@ void displayAllPersons(const list<Person> &persons) {
         cout << "Baza danych jest pusta!" << endl;
     } else {
         for (Person person : persons) {
-            displayPerson(person);
+            if (person.userId == userId) {
+                displayPerson(person);
+            }
         }
     }
     pressAnyKey();
@@ -251,6 +254,7 @@ bool saveToFile(const string filename, const Person &person) {
 
     if (file.is_open()) {
         file << person.id << '|';
+        file << person.userId << '|';
         file << person.name << '|';
         file << person.lastName << '|';
         file << person.phoneNumber << '|';
@@ -302,11 +306,12 @@ void loadFromFile(const string filename, list<Person> &persons) {
             splittedLine = split(line, '|');
 
             person.id = stoi(splittedLine[0]);
-            person.name = splittedLine[1];
-            person.lastName = splittedLine[2];
-            person.phoneNumber = splittedLine[3];
-            person.email = splittedLine[4];
-            person.address = splittedLine[5];
+            person.userId = stoi(splittedLine[1]);
+            person.name = splittedLine[2];
+            person.lastName = splittedLine[3];
+            person.phoneNumber = splittedLine[4];
+            person.email = splittedLine[5];
+            person.address = splittedLine[6];
 
             persons.push_back(person);
         }
@@ -411,16 +416,16 @@ void mainLoop(User &loggedUser) {
 
         switch (option) {
         case '1':
-            addPerson(FILENAME, persons);
+            addPerson(FILENAME, persons, loggedUser.id);
             break;
         case '2':
-            findPersonByName(persons);
+            findPersonByName(persons, loggedUser.id);
             break;
         case '3':
-            findPersonByLastName(persons);
+            findPersonByLastName(persons, loggedUser.id);
             break;
         case '4':
-            displayAllPersons(persons);
+            displayAllPersons(persons, loggedUser.id);
             break;
         case '5':
             removePerson(FILENAME, persons);
@@ -433,7 +438,9 @@ void mainLoop(User &loggedUser) {
         }
     }
 }
+
 //==============================================================================
+//=                             MAIN MENU                                      =
 //==============================================================================
 
 void displayMainMenu() {
