@@ -21,6 +21,7 @@ struct Person {
 };
 
 bool saveToFile(const string, const Person &);
+vector<string> split(string, char);
 
 void pressAnyKey() {
     cout << "Nacisnij dowolny klawisz...";
@@ -72,16 +73,32 @@ string inputAddress() {
     return address;
 }
 
+int getLastPersonId(string filename) {
+    ifstream file;
+    file.open(filename);
+    string line, result = "";
+
+    if (file.is_open()) {
+        while (getline(file, line)) {
+            if (line != "") {
+                result = line;
+            }
+        }
+    }
+    file.close();
+    if (result == "") {
+        return 0;
+    }
+    return stoi(split(result, '|')[0]);
+}
+
 void addPerson(const string filename, list<Person> &persons, int userId) {
     Person person;
 
     system("cls");
     cout << ">>> DODAJ OSOBE <<<" << endl << endl;
-    if (!persons.size()) {
-        person.id = 1;
-    } else {
-        person.id = persons.back().id + 1;
-    }
+
+    person.id = getLastPersonId(filename) + 1;
     person.userId = userId;
     person.name = inputName();
     person.lastName = inputLastName();
@@ -98,16 +115,27 @@ void addPerson(const string filename, list<Person> &persons, int userId) {
     pressAnyKey();
 }
 
-void saveAllToFile(const string filename, const list<Person> &persons) {
-    /*ofstream file;
-    file.open(filename);
+void saveAllToFile(const string filename, const Person &person) {
+    ifstream inFile;
+    inFile.open(filename);
+    ofstream outFile;
+    outFile.open("Adresaci_tymczasowy.txt", ios_base::app);
+    string line;
+    vector<string> splittedLine;
 
-    for (Person person : persons) {
-        if (!saveToFile(filename, person)) {
-            cout << "Ups, cos poszlo nie tak. Blad zapisu do pliku!" << endl;
+    if (inFile.is_open()) {
+        while (getline(inFile, line)) {
+            splittedLine = split(line, '|');
+
+            if (stoi(splittedLine[0]) == person.id) {
+                saveToFile("Adresaci_tymczasowy.txt", person);
+            } else {
+                outFile << line << endl;
+            }
         }
     }
-    file.close();*/
+    outFile.close();
+    inFile.close();
 }
 
 int inputNumber() {
@@ -148,7 +176,7 @@ void removePerson(const string filename, list<Person> &persons) {
         if (ch == 't') {
             persons.remove(person);
             cout << "Szukana osoba zostala usunieta" << endl;
-            saveAllToFile(filename, persons);
+            //saveAllToFile(filename, persons);
         } else {
             cout << "Anulowano usuwanie!" << endl;
         }
@@ -397,7 +425,8 @@ void editPersonData(const string filename, list<Person> &persons) {
             return;
         }
         replace(persons.begin(), persons.end(), person, updatedPerson);
-        saveAllToFile(filename, persons);
+        saveAllToFile(filename, updatedPerson);
+        //saveAllToFile(filename, persons);
         cout << "Dane zostaly zmienione!" << endl;
     } else {
         cout << "Nie znaleziono osoby o takim ID!" << endl;
