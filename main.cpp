@@ -6,12 +6,15 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
 
 using namespace std;
 
 struct User {
     int id = 0;
     string login, password;
+    bool operator == (const User &u) const {return id == u.id;}
 };
 
 struct Person {
@@ -22,6 +25,7 @@ struct Person {
 
 bool saveToFile(const string, const Person &);
 vector<string> split(string, char);
+string inputLine();
 
 void pressAnyKey() {
     cout << "Nacisnij dowolny klawisz...";
@@ -40,7 +44,7 @@ string inputName() {
 string inputLastName() {
     string lastName;
 
-    cout << "Podaj nawzisko: ";
+    cout << "Podaj nazwisko: ";
     getline(cin, lastName);
 
     return lastName;
@@ -115,7 +119,7 @@ void addPerson(const string filename, list<Person> &persons, int userId) {
     pressAnyKey();
 }
 
-void saveAllToFile(const string filename, const Person &person) {
+void saveAllPersons(const string filename, const Person &person, int mode) {
     ifstream inFile;
     inFile.open(filename);
     ofstream outFile;
@@ -127,15 +131,30 @@ void saveAllToFile(const string filename, const Person &person) {
         while (getline(inFile, line)) {
             splittedLine = split(line, '|');
 
-            if (stoi(splittedLine[0]) == person.id) {
-                saveToFile("Adresaci_tymczasowy.txt", person);
-            } else {
-                outFile << line << endl;
+            switch (mode) {
+                case 1: {
+                    if (stoi(splittedLine[0]) == person.id) {
+                        saveToFile("Adresaci_tymczasowy.txt", person);
+                    } else {
+                        outFile << line << endl;
+                    }
+                    break;
+                }
+                case 2: {
+                    if (stoi(splittedLine[0]) != person.id) {
+                        outFile << line << endl;
+                    }
+                    break;
+                }
             }
         }
     }
     outFile.close();
     inFile.close();
+    char fileName[filename.size() + 1];
+    strcpy(fileName, filename.c_str());
+    remove(fileName);
+    rename("Adresaci_tymczasowy.txt", fileName);
 }
 
 int inputNumber() {
@@ -176,7 +195,7 @@ void removePerson(const string filename, list<Person> &persons) {
         if (ch == 't') {
             persons.remove(person);
             cout << "Szukana osoba zostala usunieta" << endl;
-            //saveAllToFile(filename, persons);
+            saveAllPersons(filename, person, 2);
         } else {
             cout << "Anulowano usuwanie!" << endl;
         }
@@ -252,7 +271,7 @@ void displayAllPersons(const list<Person> &persons) {
 
 void displayMenu(const User &loggedUser) {
     system("cls");
-    cout << ">>> KSIAZKA ADRESOWA V.0.2 <<<" << endl;
+    cout << ">>> KSIAZKA ADRESOWA V.0.6 <<<" << endl;
     cout << endl << "Zalogowany jako: " << loggedUser.login << endl << endl;
     cout << "1. Dodaj osobe" << endl;
     cout << "2. Wyszukaj po imieniu" << endl;
@@ -260,7 +279,8 @@ void displayMenu(const User &loggedUser) {
     cout << "4. Wyswietl wszystkie osoby" << endl;
     cout << "5. Usun osobe" << endl;
     cout << "6. Edytuj osobe" << endl;
-    cout << "7. Zakoncz program" << endl << endl;
+    cout << "7. Zmien haslo" << endl;
+    cout << "8. Wyloguj sie" << endl << endl;
     cout << "Podaj numer opcji: " << endl;
 }
 
@@ -269,7 +289,7 @@ char selectOption() {
 
     do {
         ch = getch();
-    } while (ch < '1' || ch > '7');
+    } while (ch < '1' || ch > '8');
 
     return ch;
 }
@@ -425,8 +445,7 @@ void editPersonData(const string filename, list<Person> &persons) {
             return;
         }
         replace(persons.begin(), persons.end(), person, updatedPerson);
-        saveAllToFile(filename, updatedPerson);
-        //saveAllToFile(filename, persons);
+        saveAllPersons(filename, updatedPerson, 1);
         cout << "Dane zostaly zmienione!" << endl;
     } else {
         cout << "Nie znaleziono osoby o takim ID!" << endl;
@@ -434,7 +453,30 @@ void editPersonData(const string filename, list<Person> &persons) {
     pressAnyKey();
 }
 
-void mainLoop(User &loggedUser) {
+void saveAllUsers(string filename, const list<User> &users) {
+    ofstream file;
+    file.open(filename);
+
+    for (User user : users) {
+        if (!saveToFile(filename, user)) {
+            cout << "Ups, cos poszlo nie tak. Blad zapisu do pliku!" << endl;
+        }
+    }
+    file.close();
+}
+
+void changePassword(string filename, list<User> &users, User &user) {
+    system("cls");
+    cout << ">>> ZMIANA HASLA <<<" << endl << endl;
+    cout << "Podaj nowe haslo: ";
+    user.password = inputLine();
+    replace(users.begin(), users.end(), user, user);
+    cout << "Haslo zostalo zmienione." << endl;
+    saveAllUsers(filename, users);
+    pressAnyKey();
+}
+
+void mainLoop(string userFilename, list<User> &users, User &loggedUser) {
     const string FILENAME = "Adresaci.txt";
     list<Person> persons;
     loadFromFile(FILENAME, persons, loggedUser.id);
@@ -463,7 +505,11 @@ void mainLoop(User &loggedUser) {
             editPersonData(FILENAME, persons);
             break;
         case '7':
-            exit(0);
+            changePassword(userFilename, users, loggedUser);
+            break;
+        case '8':
+            cout << "Nastapilo wylogowanie" << endl;
+            return;
         }
     }
 }
@@ -493,22 +539,13 @@ char selectMainMenuOption() {
 //==============================================================================
 //=                     REJESTRACJA UZYTKOWNIKA                                =
 //==============================================================================
-string inputLogin() {
-    string login;
 
-    cout << "Podaj login: ";
-    getline(cin, login);
+string inputLine() {
+    string line;
 
-    return login;
-}
+    getline(cin, line);
 
-string inputPassword() {
-    string password;
-
-    cout << "Podaj haslo: ";
-    getline(cin, password);
-
-    return password;
+    return line;
 }
 
 bool isLoginExists(string login, const list<User> &users) {
@@ -530,12 +567,14 @@ void addUser(string filename, list<User> &users) {
     } else {
         user.id = users.back().id + 1;
     }
-    if (isLoginExists(user.login = inputLogin(), users)) {
+    cout << "Podaj login: ";
+    if (isLoginExists(user.login = inputLine(), users)) {
         cout << "Podany login jest juz zajety" << endl;
         pressAnyKey();
         return;
     }
-    user.password = inputPassword();
+    cout << "Podaj haslo: ";
+    user.password = inputLine();
 
     users.push_back(user);
     if (saveToFile(filename, user)) {
@@ -569,25 +608,27 @@ bool validatePassword(string password, const User &user) {
     return false;
 }
 
-void userLogging(const list<User> &users) {
+void userLogging(string userFilename, list<User> &users) {
     User user;
     string login;
     const int TRIALS_QUANTITY = 3;
 
     system("cls");
     cout << ">>> LOGOWANIE UZYTKOWNIKA <<<" << endl << endl;
-    if (!isLoginExists(login = inputLogin(), users)) {
+    cout << "Podaj login: ";
+    if (!isLoginExists(login = inputLine(), users)) {
         cout << "Podany login nie istnieje!" << endl;
         pressAnyKey();
         return;
     }
     user = getUserByLogin(login, users);
     for (int i = TRIALS_QUANTITY; i >= 1; i--) {
-        cout << "Wpisywanie hasla. Pozostalo prob: " << i << endl;
-        if (validatePassword(inputPassword(), user)) {
+        cout << "Podaj haslo. Pozostalo prob " << i << ": ";
+        if (validatePassword(inputLine(), user)) {
             cout << endl << "Zalogowano pomyslnie!" << endl;
+            i = 0;
             pressAnyKey();
-            mainLoop(user);
+            mainLoop(userFilename, users, user);
         } else {
             cout << "Haslo niepoprawne!" << endl;
             continue;
@@ -611,7 +652,7 @@ int main() {
             addUser(FILENAME, users);
             break;
         case '2':
-            userLogging(users);
+            userLogging(FILENAME, users);
             break;
         case '3':
             exit(0);
